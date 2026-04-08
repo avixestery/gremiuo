@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin | Representa+</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#0d0d0d;--bg2:#111;--bg3:#171717;
+  --surface:#1c1c1c;--surface2:#222;--border:#2e2e2e;--border2:#3a3a3a;
+  --red:#e8192c;--red-dark:#c0111f;--red-light:#ff3347;
+  --red-subtle:rgba(232,25,44,.08);--red-glow:rgba(232,25,44,.2);
+  --text:#f5f5f5;--text2:#999;--text3:#555;--gold:#f5a623;
+  --green:#22c55e;--blue:#3b82f6;--purple:#a855f7;
+  --t:all .22s cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;min-height:100vh}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--red-dark);border-radius:3px}
+
+/* ── LOGIN SCREEN ── */
+#loginScreen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:24px;
+  background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(232,25,44,.12) 0%,transparent 60%);
+}
+.login-box{
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:48px 40px;width:100%;max-width:400px;text-align:center;
+}
+.login-logo{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin-bottom:4px}
+.login-logo span{color:var(--red)}
+.login-sub{font-size:.82rem;color:var(--text3);margin-bottom:36px}
+.login-box h2{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:700;margin-bottom:6px}
+.login-box p{font-size:.85rem;color:var(--text2);margin-bottom:28px}
+.inp{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:var(--t);margin-bottom:12px}
+.inp:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(232,25,44,.1)}
+.login-btn{width:100%;padding:13px;background:var(--red);color:#fff;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;transition:var(--t);margin-top:4px}
+.login-btn:hover{opacity:.88;transform:translateY(-1px)}
+.login-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.login-err{font-size:.78rem;color:var(--red-light);margin-top:10px;min-height:18px}
+
+/* ── ADMIN LAYOUT ── */
+#adminApp{display:none;min-height:100vh}
+
+/* Sidebar */
+.sidebar{
+  position:fixed;top:0;left:0;bottom:0;width:240px;
+  background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;z-index:100;
+  transition:transform .3s ease;
+}
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid var(--border)}
+.sidebar-logo .brand{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800}
+.sidebar-logo .brand span{color:var(--red)}
+.sidebar-logo .sub{font-size:.7rem;color:var(--text3);margin-top:2px}
+.sidebar-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer;transition:var(--t);color:var(--text2);font-size:.875rem;font-weight:500;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--surface);color:var(--text)}
+.nav-item.active{background:var(--red-subtle);color:var(--red-light);border:1px solid rgba(232,25,44,.2)}
+.nav-item .ni-icon{font-size:1rem;flex-shrink:0}
+.nav-item .ni-badge{margin-left:auto;background:var(--red);color:#fff;font-size:.65rem;font-weight:700;padding:2px 6px;border-radius:100px;min-width:18px;text-align:center}
+.sidebar-footer{padding:16px 12px;border-top:1px solid var(--border)}
+.user-info{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;background:var(--surface)}
+.user-av{width:32px;height:32px;background:var(--red);border-radius:50%;display:grid;place-items:center;font-size:.85rem;font-weight:700;color:#fff;flex-shrink:0}
+.user-email{font-size:.72rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.logout-btn{display:flex;align-items:center;gap:8px;width:100%;padding:9px 12px;margin-top:6px;border:none;background:transparent;color:var(--text3);cursor:pointer;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;transition:var(--t)}
+.logout-btn:hover{color:var(--red-light);background:var(--red-subtle)}
+
+/* Main */
+.main{margin-left:240px;min-height:100vh;display:flex;flex-direction:column}
+.topbar{height:60px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;flex-shrink:0}
+.topbar-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.topbar-back{display:flex;align-items:center;gap:6px;color:var(--text2);text-decoration:none;font-size:.82rem;font-weight:500;padding:6px 12px;border-radius:7px;border:1px solid var(--border);transition:var(--t)}
+.topbar-back:hover{color:var(--text);border-color:var(--border2)}
+.hamburger-adm{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:8px;background:none;border:none}
+.hamburger-adm span{display:block;width:20px;height:2px;background:var(--text);border-radius:2px}
+
+/* Pages */
+.page{display:none;padding:28px;flex:1}
+.page.active{display:block}
+
+/* ── CARDS ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:28px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:6px}
+.stat-card .sc-num{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--red)}
+.stat-card .sc-lbl{font-size:.75rem;color:var(--text3);font-weight:500}
+.stat-card .sc-icon{font-size:1.3rem;margin-bottom:4px}
+
+/* ── TABLE / LIST ── */
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px}
+.section-head h3{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:var(--t)}
+.btn-primary{background:var(--red);color:#fff}
+.btn-primary:hover{opacity:.88}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--border2)}
+.btn-sm{padding:5px 11px;font-size:.75rem;border-radius:6px}
+.btn-danger{background:rgba(232,25,44,.15);color:var(--red-light);border:1px solid rgba(232,25,44,.25)}
+.btn-danger:hover{background:rgba(232,25,44,.25)}
+.btn-success{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.btn-success:hover{background:rgba(34,197,94,.2)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px}
+.card-item{padding:16px 20px;border-bottom:1px solid var(--border);transition:var(--t)}
+.card-item:last-child{border-bottom:none}
+.card-item:hover{background:var(--surface2)}
+.item-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
+.item-tag{display:inline-block;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:4px;flex-shrink:0}
+.tag-pendente{background:rgba(245,166,35,.12);color:var(--gold)}
+.tag-em_analise{background:rgba(59,130,246,.12);color:var(--blue)}
+.tag-respondida,.tag-resolvida{background:rgba(34,197,94,.12);color:var(--green)}
+.tag-arquivada{background:rgba(255,255,255,.06);color:var(--text3)}
+.tag-anon{background:var(--red-subtle);color:var(--red-light)}
+.tag-named{background:rgba(255,255,255,.06);color:#aaa}
+.item-text{font-size:.875rem;color:var(--text2);line-height:1.6;flex:1}
+.item-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.item-time{font-size:.7rem;color:var(--text3)}
+.item-actions{margin-left:auto;display:flex;gap:6px;flex-shrink:0}
+
+.empty-state{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty-state .es-icon{font-size:2.5rem;margin-bottom:12px}
+.empty-state p{font-size:.875rem}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border)}
+.modal-head h3{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700}
+.modal-close{width:28px;height:28px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;display:grid;place-items:center;font-size:.9rem;transition:var(--t)}
+.modal-close:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.modal-body{padding:24px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:.78rem;font-weight:600;color:var(--text2);margin-bottom:6px}
+.form-group .inp{margin-bottom:0}
+textarea.inp{resize:vertical;min-height:90px}
+select.inp{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+select.inp option{background:var(--bg2)}
+.modal-foot{display:flex;gap:10px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--border)}
+
+/* ── PROGRESS BAR ── */
+.prog-bar{height:4px;background:var(--bg3);border-radius:100px;overflow:hidden;margin-top:6px}
+.prog-fill{height:100%;border-radius:100px;background:var(--red);transition:width .6s ease}
+
+/* ── POLL RESULTS ── */
+.poll-result{margin-bottom:14px}
+.poll-result-row{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:4px}
+.poll-result-pct{font-weight:700;color:var(--red)}
+
+/* ── STATUS BADGE ── */
+.status-dot{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;margin-right:4px}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid rgba(232,25,44,.35);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;z-index:9999;transform:translateY(90px);opacity:0;transition:all .3s cubic-bezier(.4,0,.2,1);max-width:300px;box-shadow:0 8px 28px rgba(0,0,0,.5)}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ── LOADING ── */
+.loading{text-align:center;padding:32px;color:var(--text3);font-size:.85rem}
+.spin{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .hamburger-adm{display:flex}
+  .page{padding:18px}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .item-actions{flex-direction:column}
+  .modal{margin:0;border-radius:12px}
+}
+@media(max-width:400px){
+  .stats-row{grid-template-columns:1fr 1fr}
+  .login-box{padding:32px 20px}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">Representa<span>+</span></div>
+    <div class="login-sub">Área Administrativa</div>
+    <div style="font-size:2.2rem;margin-bottom:20px">🔐</div>
+    <h2>Entrar</h2>
+    <p>Acesso restrito aos membros do grêmio.</p>
+    <input type="email" class="inp" id="loginEmail" placeholder="E-mail institucional" onkeydown="if(event.key==='Enter')doLogin()">
+    <input type="password" class="inp" id="loginPass" placeholder="Senha" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Entrar →</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="adminApp">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="brand">Representa<span>+</span></div>
+      <div class="sub">Painel Administrativo</div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="showPage('dashboard',this)"><span class="ni-icon">📊</span>Dashboard</button>
+      <button class="nav-item" onclick="showPage('ideias',this)"><span class="ni-icon">💡</span>Ideias<span class="ni-badge" id="bdg-ideias">0</span></button>
+      <button class="nav-item" onclick="showPage('denuncias',this)"><span class="ni-icon">🔒</span>Ouvidoria<span class="ni-badge" id="bdg-denuncias">0</span></button>
+      <button class="nav-item" onclick="showPage('contatos',this)"><span class="ni-icon">📩</span>Contatos<span class="ni-badge" id="bdg-contatos">0</span></button>
+      <button class="nav-item" onclick="showPage('anuncios',this)"><span class="ni-icon">📢</span>Anúncios</button>
+      <button class="nav-item" onclick="showPage('projetos',this)"><span class="ni-icon">🚀</span>Projetos</button>
+      <button class="nav-item" onclick="showPage('enquetes',this)"><span class="ni-icon">🗳️</span>Enquetes</button>
+      <button class="nav-item" onclick="showPage('eventos',this)"><span class="ni-icon">📅</span>Eventos</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-av" id="userAv">?</div>
+        <div class="user-email" id="userEmail">carregando...</div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">🚪 Sair da conta</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger-adm" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+        <div class="topbar-title" id="pageTitle">Dashboard</div>
+      </div>
+      <div class="topbar-right">
+        <a href="index.html" class="topbar-back">← Ver site</a>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="pg-dashboard">
+      <div class="stats-row" id="dashStats">
+        <div class="stat-card"><div class="sc-icon">💡</div><div class="sc-num" id="ds-ideias">—</div><div class="sc-lbl">Ideias recebidas</div></div>
+        <div class="stat-card"><div class="sc-icon">🔒</div><div class="sc-num" id="ds-den">—</div><div class="sc-lbl">Denúncias</div></div>
+        <div class="stat-card"><div class="sc-icon">📩</div><div class="sc-num" id="ds-cont">—</div><div class="sc-lbl">Contatos</div></div>
+        <div class="stat-card"><div class="sc-icon">🗳️</div><div class="sc-num" id="ds-votos">—</div><div class="sc-lbl">Votos totais</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div class="section-head"><h3>💡 Ideias recentes</h3></div>
+          <div id="dashIdeias"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
+        </div>
+        <div>
+          <div class="section-head"><h3>📊 Resultado da enquete</h3></div>
+          <div class="card" id="dashEnquete"><div class="loading"><div class="spin"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IDEIAS -->
+    <div class="page" id="pg-ideias">
+      <div class="section-head">
+        <h3>💡 Ideias e Sugestões</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select class="inp" style="width:auto;padding:7px 28px 7px 10px;font-size:.8rem" id="filtroIdeias" onchange="loadIdeias()">
+            <option value="">Todos os status</option>
+            <option value="pendente">Pendente</option>
+            <option value="em_analise">Em análise</option>
+            <option value="respondida">Respondida</option>
+            <option value="arquivada">Arquivada</option>
+          </select>
+        </div>
+      </div>
+      <div id="listaIdeias"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
+    </div>
+
+    <!-- DENUNCIAS -->
+    <div class="page" id="pg-denuncias">
+      <div style="background:var(--red-subtle);border:1px solid rgba(232,25,44,.2);border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:.82rem;color:var(--text2)">
+        🔒 <strong>Área sigilosa.</strong> Trate todas as denúncias com absoluta discrição e seriedade.
+      </div>
+      <div class="section-head">
+        <h3>🔒 Ouvidoria Anônima</h3>
+        <select class="inp" style="width:auto;padding:7px 28px 7px 10px;font-size:.8rem" id="filtroDen" onchange="loadDenuncias()">
+          <option value="">Todos os status</option>
+          <option value="pendente">Pendente</option>
+          <option value="em_analise">Em análise</option>
+          <option value="resolvida">Resolvida</option>
+          <option value="arquivada">Arquivada</option>
+        </select>
+      </div>
+      <div id="listaDenuncias"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
+    </div>
+
+    <!-- CONTATOS -->
+    <div class="page" id="pg-contatos">
+      <div class="section-head"><h3>📩 Mensagens de Contato</h3></div>
+      <div id="listaContatos"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
+    </div>
+
+    <!-- ANUNCIOS -->
+    <div class="page" id="pg-anuncios">
+      <div class="section-head">
+        <h3>📢 Anúncios</h3>
+        <button class="btn btn-primary btn-sm" onclick="openModal('anuncio')">+ Novo anúncio</button>
+      </div>
+      <div id="listaAnuncios"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
+    </div>
+
+    <!-- PROJETOS -->
+    <div class="page" id="pg-projetos">
+      <div class="section-head">
+        <h3>🚀 Projetos</h3>
+        <button class="btn btn-primary btn-sm" onclick="openModal('projeto')">+ Novo projeto</button>
+      </div>
+      <div id="listaProjetos"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
+    </div>
+
+    <!-- ENQUETES -->
+    <div class="page" id="pg-enquetes">
+      <div class="section-head">
+        <h3>🗳️ Enquetes</h3>
+        <button class="btn btn-primary btn-sm" onclick="openModal('enquete')">+ Nova enquete</button>
+      </div>
+      <div id="listaEnquetes"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
+    </div>
+
+    <!-- EVENTOS -->
+    <div class="page" id="pg-eventos">
+      <div class="section-head">
+        <h3>📅 Eventos do Calendário</h3>
+        <button class="btn btn-primary btn-sm" onclick="openModal('evento')">+ Novo evento</button>
+      </div>
+      <div id="listaEventos"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /adminApp -->
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">Modal</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="tIcon">✅</span>&nbsp;<span id="tTxt" style="font-size:.83rem;font-weight:500"></span></div>
+
+<script>
+// ── SUPABASE ──
+const SUPA_URL = 'https://qooqrmkhhnyziauwnhko.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvb3FybWtoaG55emlhdXduaGtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODA5MTcsImV4cCI6MjA5MTI1NjkxN30.avfhbhaMb1MLFvrByP5VRTFkj6f8ftVH4upEUzgY4uE';
+const { createClient } = supabase;
+const db = createClient(SUPA_URL, SUPA_KEY);
+
+// ── TOAST ──
+function toast(icon, txt, dur=3000){
+  document.getElementById('tIcon').textContent = icon;
+  document.getElementById('tTxt').textContent = txt;
+  const el = document.getElementById('toast');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ── DATE FORMAT ──
+function fmtDate(d){ return d ? new Date(d).toLocaleString('pt-BR') : '—' }
+function fmtDateShort(d){ return d ? new Date(d).toLocaleDateString('pt-BR') : '—' }
+
+// ── STATUS TAG HTML ──
+function tagHtml(status){
+  return `<span class="item-tag tag-${status}">${status.replace('_',' ')}</span>`;
+}
+
+// ── AUTH ──
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const btn   = document.getElementById('loginBtn');
+  const err   = document.getElementById('loginErr');
+  if(!email || !pass){ err.textContent = 'Preencha e-mail e senha.'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Entrando...';
+  err.textContent = '';
+  const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+  if(error){
+    err.textContent = 'E-mail ou senha incorretos.';
+    btn.disabled = false;
+    btn.textContent = 'Entrar →';
+    return;
+  }
+  initApp(data.user);
+}
+
+async function doLogout(){
+  await db.auth.signOut();
+  location.reload();
+}
+
+async function checkSession(){
+  const { data: { session } } = await db.auth.getSession();
+  if(session){ initApp(session.user); }
+}
+
+function initApp(user){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('adminApp').style.display = 'block';
+  // User info
+  const email = user.email || '';
+  document.getElementById('userEmail').textContent = email;
+  document.getElementById('userAv').textContent = email[0]?.toUpperCase() || 'A';
+  // Load dashboard
+  loadDashboard();
+}
+
+// ── SIDEBAR / MOBILE ──
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+}
+function showPage(page, btn){
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('pg-'+page).classList.add('active');
+  btn.classList.add('active');
+  const titles = {dashboard:'Dashboard',ideias:'Ideias',denuncias:'Ouvidoria',contatos:'Contatos',anuncios:'Anúncios',projetos:'Projetos',enquetes:'Enquetes',eventos:'Eventos'};
+  document.getElementById('pageTitle').textContent = titles[page] || page;
+  document.getElementById('sidebar').classList.remove('open');
+  // lazy load
+  const loaders = {ideias:loadIdeias,denuncias:loadDenuncias,contatos:loadContatos,anuncios:loadAnuncios,projetos:loadProjetos,enquetes:loadEnquetes,eventos:loadEventos};
+  if(loaders[page]) loaders[page]();
+}
+
+// ── DASHBOARD ──
+async function loadDashboard(){
+  const [
+    {count:ci}, {count:cd}, {count:cc},
+    {data:opcoes}
+  ] = await Promise.all([
+    db.from('ideias').select('*',{count:'exact',head:true}).eq('status','pendente'),
+    db.from('denuncias').select('*',{count:'exact',head:true}).eq('status','pendente'),
+    db.from('contatos').select('*',{count:'exact',head:true}).eq('respondido',false),
+    db.from('enquete_opcoes').select('votos')
+  ]);
+  // counts
+  document.getElementById('ds-ideias').textContent = ci ?? 0;
+  document.getElementById('ds-den').textContent    = cd ?? 0;
+  document.getElementById('ds-cont').textContent   = cc ?? 0;
+  const totalVotos = opcoes?.reduce((a,o) => a+o.votos, 0) ?? 0;
+  document.getElementById('ds-votos').textContent  = totalVotos;
+  // badges
+  document.getElementById('bdg-ideias').textContent    = ci ?? 0;
+  document.getElementById('bdg-denuncias').textContent = cd ?? 0;
+  document.getElementById('bdg-contatos').textContent  = cc ?? 0;
+
+  // recent ideias
+  const {data:ideias} = await db.from('ideias').select('*').order('created_at',{ascending:false}).limit(5);
+  document.getElementById('dashIdeias').innerHTML = ideias?.length
+    ? '<div class="card">' + ideias.map(i=>`
+        <div class="card-item">
+          <div class="item-meta" style="margin-bottom:6px">
+            ${tagHtml(i.status)}
+            <span class="item-tag ${i.anonimo?'tag-anon':'tag-named'}">${i.anonimo?'🕵️ Anônimo':'👤 '+i.nome}</span>
+            <span class="item-time">${fmtDate(i.created_at)}</span>
+          </div>
+          <div class="item-text">${i.texto}</div>
+        </div>`).join('') + '</div>'
+    : '<div class="empty-state"><div class="es-icon">💡</div><p>Nenhuma ideia ainda.</p></div>';
+
+  // enquete
+  const {data:enq} = await db.from('enquetes').select('*,enquete_opcoes(*)').eq('ativa',true).limit(1).single();
+  if(enq){
+    const tot = enq.enquete_opcoes.reduce((a,o)=>a+o.votos,0)||1;
+    document.getElementById('dashEnquete').innerHTML = `
+      <div style="padding:16px">
+        <div style="font-size:.85rem;font-weight:600;margin-bottom:14px">${enq.pergunta}</div>
+        ${enq.enquete_opcoes.sort((a,b)=>a.ordem-b.ordem).map(o=>{
+          const p = Math.round(o.votos/tot*100);
+          return `<div class="poll-result">
+            <div class="poll-result-row"><span>${o.texto}</span><span class="poll-result-pct">${p}% (${o.votos})</span></div>
+            <div class="prog-bar"><div class="prog-fill" style="width:${p}%"></div></div>
+          </div>`;
+        }).join('')}
+        <div style="font-size:.72rem;color:var(--text3);margin-top:10px">Total: ${tot} votos</div>
+      </div>`;
+  } else {
+    document.getElementById('dashEnquete').innerHTML = '<div class="empty-state"><p>Nenhuma enquete ativa.</p></div>';
+  }
+}
+
+// ── IDEIAS ──
+async function loadIdeias(){
+  const status = document.getElementById('filtroIdeias')?.value;
+  let q = db.from('ideias').select('*').order('created_at',{ascending:false});
+  if(status) q = q.eq('status',status);
+  const {data} = await q;
+  document.getElementById('listaIdeias').innerHTML = data?.length
+    ? '<div class="card">' + data.map(i=>`
+        <div class="card-item">
+          <div class="item-top">
+            <div style="flex:1">
+              <div class="item-meta" style="margin-bottom:6px">
+                ${tagHtml(i.status)}
+                <span class="item-tag ${i.anonimo?'tag-anon':'tag-named'}">${i.anonimo?'🕵️ Anônimo':'👤 '+(i.nome||'—')}</span>
+                <span class="item-tag" style="background:var(--surface2);color:var(--text2)">${i.categoria||'—'}</span>
+                <span class="item-time">${fmtDate(i.created_at)}</span>
+              </div>
+              <div class="item-text">${i.texto}</div>
+              ${i.resposta?`<div style="margin-top:8px;padding:10px;background:var(--bg3);border-radius:7px;font-size:.8rem;color:var(--text2);border-left:2px solid var(--red)">💬 <strong>Resposta:</strong> ${i.resposta}</div>`:''}
+            </div>
+            <div class="item-actions">
+              <button class="btn btn-secondary btn-sm" onclick="openIdeiaModal('${i.id}','${i.status}')">Gerenciar</button>
+            </div>
+          </div>
+        </div>`).join('') + '</div>'
+    : '<div class="empty-state"><div class="es-icon">💡</div><p>Nenhuma ideia encontrada.</p></div>';
+}
+
+async function openIdeiaModal(id, currentStatus){
+  const {data:i} = await db.from('ideias').select('*').eq('id',id).single();
+  document.getElementById('modalTitle').textContent = '💡 Gerenciar Ideia';
+  document.getElementById('modalBody').innerHTML = `
+    <div style="margin-bottom:16px">
+      <div class="item-meta" style="margin-bottom:8px">
+        ${tagHtml(i.status)}
+        <span class="item-tag ${i.anonimo?'tag-anon':'tag-named'}">${i.anonimo?'🕵️ Anônimo':'👤 '+(i.nome||'—')}</span>
+        <span style="font-size:.72rem;color:var(--text3)">${fmtDate(i.created_at)}</span>
+      </div>
+      <div style="font-size:.82rem;color:var(--text2);margin-bottom:4px"><strong>Categoria:</strong> ${i.categoria}</div>
+      <div style="background:var(--bg3);border-radius:8px;padding:14px;font-size:.875rem;color:var(--text2);margin-top:8px">${i.texto}</div>
+    </div>
+    <div class="form-group">
+      <label>Alterar status</label>
+      <select class="inp" id="mIdeiaStatus">
+        <option value="pendente" ${i.status==='pendente'?'selected':''}>Pendente</option>
+        <option value="em_analise" ${i.status==='em_analise'?'selected':''}>Em análise</option>
+        <option value="respondida" ${i.status==='respondida'?'selected':''}>Respondida</option>
+        <option value="arquivada" ${i.status==='arquivada'?'selected':''}>Arquivada</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Resposta (opcional)</label>
+      <textarea class="inp" id="mIdeiaResp" placeholder="Escreva uma resposta para o aluno...">${i.resposta||''}</textarea>
+    </div>`;
+  document.getElementById('modalFoot').innerHTML = `
+    <button class="btn btn-danger btn-sm" onclick="deleteItem('ideias','${id}',loadIdeias)">🗑 Excluir</button>
+    <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-primary btn-sm" onclick="saveIdeia('${id}')">Salvar →</button>`;
+  openModal();
+}
+
+async function saveIdeia(id){
+  const status = document.getElementById('mIdeiaStatus').value;
+  const resposta = document.getElementById('mIdeiaResp').value.trim();
+  const {error} = await db.from('ideias').update({status,resposta}).eq('id',id);
+  if(error){ toast('❌','Erro ao salvar.'); return; }
+  toast('✅','Ideia atualizada!');
+  closeModal();
+  loadIdeias();
+  loadDashboard();
+}
+
+// ── DENÚNCIAS ──
+async function loadDenuncias(){
+  const status = document.getElementById('filtroDen')?.value;
+  let q = db.from('denuncias').select('*').order('created_at',{ascending:false});
+  if(status) q = q.eq('status',status);
+  const {data} = await q;
+  document.getElementById('listaDenuncias').innerHTML = data?.length
+    ? '<div class="card">' + data.map(d=>`
+        <div class="card-item">
+          <div class="item-top">
+            <div style="flex:1">
+              <div class="item-meta" style="margin-bottom:6px">
+                ${tagHtml(d.status)}
+                <span class="item-tag tag-anon">🔒 Anônimo</span>
+                <span class="item-tag" style="background:var(--surface2);color:var(--text2)">${d.categoria}</span>
+                <span class="item-time">${fmtDate(d.created_at)}</span>
+              </div>
+              <div class="item-text">${d.texto}</div>
+              ${d.nota_interna?`<div style="margin-top:8px;padding:10px;background:var(--bg3);border-radius:7px;font-size:.8rem;color:var(--text2);border-left:2px solid var(--gold)">📝 <strong>Nota interna:</strong> ${d.nota_interna}</div>`:''}
+            </div>
+            <div class="item-actions">
+              <button class="btn btn-secondary btn-sm" onclick="openDenModal('${d.id}')">Gerenciar</button>
+            </div>
+          </div>
+        </div>`).join('') + '</div>'
+    : '<div class="empty-state"><div class="es-icon">🔒</div><p>Nenhuma denúncia encontrada.</p></div>';
+}
+
+async function openDenModal(id){
+  const {data:d} = await db.from('denuncias').select('*').eq('id',id).single();
+  document.getElementById('modalTitle').textContent = '🔒 Gerenciar Denúncia';
+  document.getElementById('modalBody').innerHTML = `
+    <div style="margin-bottom:16px">
+      <div class="item-meta" style="margin-bottom:8px">
+        ${tagHtml(d.status)}
+        <span class="item-tag tag-anon">🔒 Anônimo</span>
+        <span style="font-size:.72rem;color:var(--text3)">${fmtDate(d.created_at)}</span>
+      </div>
+      <div style="font-size:.82rem;color:var(--text2);margin-bottom:4px"><strong>Categoria:</strong> ${d.categoria}</div>
+      <div style="background:var(--bg3);border-radius:8px;padding:14px;font-size:.875rem;color:var(--text2);margin-top:8px">${d.texto}</div>
+    </div>
+    <div class="form-group">
+      <label>Alterar status</label>
+      <select class="inp" id="mDenStatus">
+        <option value="pendente" ${d.status==='pendente'?'selected':''}>Pendente</option>
+        <option value="em_analise" ${d.status==='em_analise'?'selected':''}>Em análise</option>
+        <option value="resolvida" ${d.status==='resolvida'?'selected':''}>Resolvida</option>
+        <option value="arquivada" ${d.status==='arquivada'?'selected':''}>Arquivada</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Nota interna (não visível ao denunciante)</label>
+      <textarea class="inp" id="mDenNota" placeholder="Anotações internas sobre o caso...">${d.nota_interna||''}</textarea>
+    </div>`;
+  document.getElementById('modalFoot').innerHTML = `
+    <button class="btn btn-danger btn-sm" onclick="deleteItem('denuncias','${id}',loadDenuncias)">🗑 Excluir</button>
+    <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-primary btn-sm" onclick="saveDen('${id}')">Salvar →</button>`;
+  openModal();
+}
+
+async function saveDen(id){
+  const status = document.getElementById('mDenStatus').value;
+  const nota_interna = document.getElementById('mDenNota').value.trim();
+  const {error} = await db.from('denuncias').update({status,nota_interna}).eq('id',id);
+  if(error){ toast('❌','Erro ao salvar.'); return; }
+  toast('✅','Denúncia atualizada!');
+  closeModal();
+  loadDenuncias();
+}
+
+// ── CONTATOS ──
+async function loadContatos(){
+  const {data} = await db.from('contatos').select('*').order('created_at',{ascending:false});
+  document.getElementById('listaContatos').innerHTML = data?.length
+    ? '<div class="card">' + data.map(c=>`
+        <div class="card-item">
+          <div class="item-top">
+            <div style="flex:1">
+              <div class="item-meta" style="margin-bottom:6px">
+                <span class="item-tag ${c.respondido?'tag-respondida':'tag-pendente'}">${c.respondido?'✓ Respondido':'Novo'}</span>
+                <span class="item-tag tag-named">👤 ${c.nome}</span>
+                ${c.email?`<span class="item-time">${c.email}</span>`:''}
+                <span class="item-time">${fmtDate(c.created_at)}</span>
+              </div>
+              <div class="item-text">${c.mensagem}</div>
+            </div>
+            <div class="item-actions">
+              ${!c.respondido?`<button class="btn btn-success btn-sm" onclick="marcarRespondido('${c.id}')">✓ Marcar respondido</button>`:''}
+              <button class="btn btn-danger btn-sm" onclick="deleteItem('contatos','${c.id}',loadContatos)">🗑</button>
+            </div>
+          </div>
+        </div>`).join('') + '</div>'
+    : '<div class="empty-state"><div class="es-icon">📩</div><p>Nenhuma mensagem ainda.</p></div>';
+}
+
+async function marcarRespondido(id){
+  await db.from('contatos').update({respondido:true}).eq('id',id);
+  toast('✅','Marcado como respondido!');
+  loadContatos();
+  loadDashboard();
+}
+
+// ── ANÚNCIOS ──
+async function loadAnuncios(){
+  const {data} = await db.from('anuncios').select('*').order('created_at',{ascending:false});
+  document.getElementById('listaAnuncios').innerHTML = data?.length
+    ? '<div class="card">' + data.map(a=>`
+        <div class="card-item">
+          <div class="item-top">
+            <div style="flex:1">
+              <div class="item-meta" style="margin-bottom:6px">
+                <span class="item-tag" style="background:var(--red-subtle);color:var(--red-light)">${a.categoria}</span>
+                ${a.destaque?`<span class="item-tag" style="background:rgba(245,166,35,.12);color:var(--gold)">⭐ Destaque</span>`:''}
+                ${!a.publicado?`<span class="item-tag tag-arquivada">🚫 Oculto</span>`:''}
+                <span class="item-time">${fmtDate(a.created_at)}</span>
+              </div>
+              <div style="font-weight:600;font-size:.9rem;margin-bottom:4px">${a.titulo}</div>
+              <div class="item-text">${a.descricao}</div>
+            </div>
+            <div class="item-actions">
+              <button class="btn btn-secondary btn-sm" onclick="openAnuncioModal('${a.id}')">✏️ Editar</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteItem('anuncios','${a.id}',loadAnuncios)">🗑</button>
+            </div>
+          </div>
+        </div>`).join('') + '</div>'
+    : '<div class="empty-state"><div class="es-icon">📢</div><p>Nenhum anúncio ainda.</p></div>';
+}
+
+async function openAnuncioModal(id=null){
+  let a = {};
+  if(id){ const {data} = await db.from('anuncios').select('*').eq('id',id).single(); a = data||{}; }
+  document.getElementById('modalTitle').textContent = id ? '✏️ Editar Anúncio' : '📢 Novo Anúncio';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label>Título</label><input class="inp" id="aTit" value="${a.titulo||''}" placeholder="Título do anúncio"></div>
+    <div class="form-group"><label>Descrição</label><textarea class="inp" id="aDesc" placeholder="Texto do anúncio...">${a.descricao||''}</textarea></div>
+    <div class="form-group"><label>Categoria</label>
+      <select class="inp" id="aCat">
+        <option value="evento" ${a.categoria==='evento'?'selected':''}>Evento</option>
+        <option value="aviso" ${a.categoria==='aviso'?'selected':''}>Aviso</option>
+        <option value="campanha" ${a.categoria==='campanha'?'selected':''}>Campanha</option>
+        <option value="urgente" ${a.categoria==='urgente'?'selected':''}>Urgente</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:20px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="aDest" ${a.destaque?'checked':''}> Destaque</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="aPub" ${a.publicado!==false?'checked':''}> Publicado</label>
+    </div>`;
+  document.getElementById('modalFoot').innerHTML = `
+    <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-primary btn-sm" onclick="saveAnuncio('${id||''}')">Salvar →</button>`;
+  openModal();
+}
+
+async function saveAnuncio(id){
+  const payload = {
+    titulo: document.getElementById('aTit').value.trim(),
+    descricao: document.getElementById('aDesc').value.trim(),
+    categoria: document.getElementById('aCat').value,
+    destaque: document.getElementById('aDest').checked,
+    publicado: document.getElementById('aPub').checked,
+  };
+  if(!payload.titulo||!payload.descricao){ toast('⚠️','Preencha título e descrição.'); return; }
+  const {error} = id
+    ? await db.from('anuncios').update(payload).eq('id',id)
+    : await db.from('anuncios').insert(payload);
+  if(error){ toast('❌','Erro ao salvar.'); return; }
+  toast('✅', id?'Anúncio atualizado!':'Anúncio criado!');
+  closeModal(); loadAnuncios();
+}
+
+// ── PROJETOS ──
+async function loadProjetos(){
+  const {data} = await db.from('projetos').select('*').order('ordem');
+  document.getElementById('listaProjetos').innerHTML = data?.length
+    ? '<div class="card">' + data.map(p=>{
+        const sc = {planejamento:'tag-pendente',andamento:'tag-em_analise',concluido:'tag-respondida'};
+        return `<div class="card-item">
+          <div class="item-top">
+            <div style="flex:1">
+              <div class="item-meta" style="margin-bottom:8px">
+                <span class="item-tag ${sc[p.status]}">${p.status}</span>
+                <span class="item-time">${p.voluntarios} voluntários</span>
+              </div>
+              <div style="font-weight:600;font-size:.9rem;margin-bottom:4px">${p.nome}</div>
+              <div class="item-text" style="margin-bottom:8px">${p.descricao}</div>
+              <div style="font-size:.72rem;color:var(--text3);margin-bottom:4px">Progresso: ${p.progresso}%</div>
+              <div class="prog-bar"><div class="prog-fill" style="width:${p.progresso}%"></div></div>
+            </div>
+            <div class="item-actions">
+              <button class="btn btn-secondary btn-sm" onclick="openProjetoModal('${p.id}')">✏️ Editar</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteItem('projetos','${p.id}',loadProjetos)">🗑</button>
+            </div>
+          </div>
+        </div>`;}).join('') + '</div>'
+    : '<div class="empty-state"><div class="es-icon">🚀</div><p>Nenhum projeto ainda.</p></div>';
+}
+
+async function openProjetoModal(id=null){
+  let p = {};
+  if(id){ const {data} = await db.from('projetos').select('*').eq('id',id).single(); p = data||{}; }
+  document.getElementById('modalTitle').textContent = id ? '✏️ Editar Projeto' : '🚀 Novo Projeto';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label>Nome</label><input class="inp" id="pNome" value="${p.nome||''}" placeholder="Nome do projeto"></div>
+    <div class="form-group"><label>Descrição</label><textarea class="inp" id="pDesc" placeholder="Descrição do projeto...">${p.descricao||''}</textarea></div>
+    <div class="form-group"><label>Status</label>
+      <select class="inp" id="pStatus">
+        <option value="planejamento" ${p.status==='planejamento'?'selected':''}>Em planejamento</option>
+        <option value="andamento" ${p.status==='andamento'?'selected':''}>Em andamento</option>
+        <option value="concluido" ${p.status==='concluido'?'selected':''}>Concluído</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>Progresso (%)</label><input class="inp" type="number" id="pProg" min="0" max="100" value="${p.progresso||0}"></div>
+      <div class="form-group"><label>Voluntários</label><input class="inp" type="number" id="pVol" min="0" value="${p.voluntarios||0}"></div>
+    </div>`;
+  document.getElementById('modalFoot').innerHTML = `
+    <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-primary btn-sm" onclick="saveProjeto('${id||''}')">Salvar →</button>`;
+  openModal();
+}
+
+async function saveProjeto(id){
+  const payload = {
+    nome: document.getElementById('pNome').value.trim(),
+    descricao: document.getElementById('pDesc').value.trim(),
+    status: document.getElementById('pStatus').value,
+    progresso: parseInt(document.getElementById('pProg').value)||0,
+    voluntarios: parseInt(document.getElementById('pVol').value)||0,
+  };
+  if(!payload.nome){ toast('⚠️','Informe o nome do projeto.'); return; }
+  const {error} = id
+    ? await db.from('projetos').update(payload).eq('id',id)
+    : await db.from('projetos').insert(payload);
+  if(error){ toast('❌','Erro ao salvar.'); return; }
+  toast('✅', id?'Projeto atualizado!':'Projeto criado!');
+  closeModal(); loadProjetos();
+}
+
+// ── ENQUETES ──
+async function loadEnquetes(){
+  const {data} = await db.from('enquetes').select('*,enquete_opcoes(*)').order('created_at',{ascending:false});
+  document.getElementById('listaEnquetes').innerHTML = data?.length
+    ? data.map(e=>{
+        const tot = e.enquete_opcoes.reduce((a,o)=>a+o.votos,0)||1;
+        return `<div class="card" style="margin-bottom:14px">
+          <div style="padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-weight:600;font-size:.9rem">${e.pergunta}</div>
+              <div style="font-size:.72rem;color:var(--text3);margin-top:3px">${e.ativa?'🟢 Ativa':'🔴 Encerrada'} · ${tot} votos · criada ${fmtDateShort(e.created_at)}</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-${e.ativa?'danger':'success'} btn-sm" onclick="toggleEnquete('${e.id}',${e.ativa})">${e.ativa?'Encerrar':'Reativar'}</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteItem('enquetes','${e.id}',loadEnquetes)">🗑</button>
+            </div>
+          </div>
+          <div style="padding:16px 20px">
+            ${e.enquete_opcoes.sort((a,b)=>a.ordem-b.ordem).map(o=>{const p=Math.round(o.votos/tot*100);return`
+              <div class="poll-result">
+                <div class="poll-result-row"><span>${o.texto}</span><span class="poll-result-pct">${p}% (${o.votos} votos)</span></div>
+                <div class="prog-bar"><div class="prog-fill" style="width:${p}%"></div></div>
+              </div>`}).join('')}
+          </div>
+        </div>`;}).join('')
+    : '<div class="empty-state"><div class="es-icon">🗳️</div><p>Nenhuma enquete ainda.</p></div>';
+}
+
+function openEnqueteModal(){
+  document.getElementById('modalTitle').textContent = '🗳️ Nova Enquete';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label>Pergunta</label><input class="inp" id="ePergt" placeholder="Qual a sua pergunta?"></div>
+    <div class="form-group"><label>Opções (uma por linha)</label><textarea class="inp" id="eOpts" style="min-height:120px" placeholder="🎵 Festival de música&#10;🍕 Festa junina&#10;🎭 Peça de teatro&#10;💻 Semana de tecnologia"></textarea></div>
+    <div class="form-group"><label>Encerra em</label><input class="inp" type="datetime-local" id="eEnd"></div>`;
+  document.getElementById('modalFoot').innerHTML = `
+    <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-primary btn-sm" onclick="saveEnquete()">Criar enquete →</button>`;
+  openModal();
+}
+
+async function saveEnquete(){
+  const pergunta = document.getElementById('ePergt').value.trim();
+  const opts = document.getElementById('eOpts').value.trim().split('\n').filter(o=>o.trim());
+  const encerra = document.getElementById('eEnd').value;
+  if(!pergunta){ toast('⚠️','Escreva a pergunta.'); return; }
+  if(opts.length < 2){ toast('⚠️','Adicione pelo menos 2 opções.'); return; }
+  const {data:enq,error} = await db.from('enquetes').insert({pergunta,encerra_em:encerra||null}).select().single();
+  if(error){ toast('❌','Erro ao criar enquete.'); return; }
+  const opcoes = opts.map((texto,i)=>({enquete_id:enq.id,texto:texto.trim(),votos:0,ordem:i+1}));
+  await db.from('enquete_opcoes').insert(opcoes);
+  toast('✅','Enquete criada!');
+  closeModal(); loadEnquetes();
+}
+
+async function toggleEnquete(id, ativa){
+  await db.from('enquetes').update({ativa:!ativa}).eq('id',id);
+  toast('✅', ativa?'Enquete encerrada.':'Enquete reativada.');
+  loadEnquetes();
+}
+
+// ── EVENTOS ──
+async function loadEventos(){
+  const {data} = await db.from('eventos').select('*').order('data');
+  document.getElementById('listaEventos').innerHTML = data?.length
+    ? '<div class="card">' + data.map(e=>{
+        const tipos = {evento:'🎉',prova:'📝',reuniao:'🤝',outro:'📌'};
+        return `<div class="card-item">
+          <div class="item-top">
+            <div style="flex:1">
+              <div class="item-meta" style="margin-bottom:6px">
+                <span class="item-tag" style="background:var(--surface2);color:var(--text2)">${tipos[e.tipo]||'📌'} ${e.tipo}</span>
+                <span style="font-size:.75rem;color:var(--red);font-weight:600">${fmtDateShort(e.data)}</span>
+                ${!e.publicado?`<span class="item-tag tag-arquivada">🚫 Oculto</span>`:''}
+              </div>
+              <div style="font-weight:600;font-size:.9rem;margin-bottom:2px">${e.titulo}</div>
+              ${e.descricao?`<div class="item-text">${e.descricao}</div>`:''}
+            </div>
+            <div class="item-actions">
+              <button class="btn btn-secondary btn-sm" onclick="openEventoModal('${e.id}')">✏️</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteItem('eventos','${e.id}',loadEventos)">🗑</button>
+            </div>
+          </div>
+        </div>`;}).join('') + '</div>'
+    : '<div class="empty-state"><div class="es-icon">📅</div><p>Nenhum evento ainda.</p></div>';
+}
+
+async function openEventoModal(id=null){
+  let e = {};
+  if(id){ const {data} = await db.from('eventos').select('*').eq('id',id).single(); e = data||{}; }
+  document.getElementById('modalTitle').textContent = id ? '✏️ Editar Evento' : '📅 Novo Evento';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label>Título</label><input class="inp" id="evTit" value="${e.titulo||''}" placeholder="Título do evento"></div>
+    <div class="form-group"><label>Descrição</label><input class="inp" id="evDesc" value="${e.descricao||''}" placeholder="Breve descrição"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>Data</label><input class="inp" type="date" id="evData" value="${e.data||''}"></div>
+      <div class="form-group"><label>Tipo</label>
+        <select class="inp" id="evTipo">
+          <option value="evento" ${e.tipo==='evento'?'selected':''}>🎉 Evento</option>
+          <option value="prova" ${e.tipo==='prova'?'selected':''}>📝 Prova</option>
+          <option value="reuniao" ${e.tipo==='reuniao'?'selected':''}>🤝 Reunião</option>
+          <option value="outro" ${e.tipo==='outro'?'selected':''}>📌 Outro</option>
+        </select>
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="evPub" ${e.publicado!==false?'checked':''}> Publicado no calendário</label>`;
+  document.getElementById('modalFoot').innerHTML = `
+    <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-primary btn-sm" onclick="saveEvento('${id||''}')">Salvar →</button>`;
+  openModal();
+}
+
+async function saveEvento(id){
+  const payload = {
+    titulo: document.getElementById('evTit').value.trim(),
+    descricao: document.getElementById('evDesc').value.trim(),
+    data: document.getElementById('evData').value,
+    tipo: document.getElementById('evTipo').value,
+    publicado: document.getElementById('evPub').checked,
+  };
+  if(!payload.titulo||!payload.data){ toast('⚠️','Preencha título e data.'); return; }
+  const {error} = id
+    ? await db.from('eventos').update(payload).eq('id',id)
+    : await db.from('eventos').insert(payload);
+  if(error){ toast('❌','Erro ao salvar.'); return; }
+  toast('✅', id?'Evento atualizado!':'Evento criado!');
+  closeModal(); loadEventos();
+}
+
+// ── HELPERS ──
+async function deleteItem(table, id, reload){
+  if(!confirm('Tem certeza que deseja excluir este item?')) return;
+  const {error} = await db.from(table).delete().eq('id',id);
+  if(error){ toast('❌','Erro ao excluir.'); return; }
+  toast('🗑️','Item excluído.');
+  closeModal();
+  reload();
+}
+
+function openModal(type){
+  if(type === 'anuncio') return openAnuncioModal();
+  if(type === 'projeto') return openProjetoModal();
+  if(type === 'enquete') return openEnqueteModal();
+  if(type === 'evento')  return openEventoModal();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function openModal(){ document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+
+// ── INIT ──
+checkSession();
+</script>
+</body>
+</html>
