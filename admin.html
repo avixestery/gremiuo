@@ -305,7 +305,7 @@ select.inp option{background:var(--bg2)}
     <div class="page" id="pg-anuncios">
       <div class="section-head">
         <h3>📢 Anúncios</h3>
-        <button class="btn btn-primary btn-sm" onclick="openModal('anuncio')">+ Novo anúncio</button>
+        <button class="btn btn-primary btn-sm" onclick="openAnuncioModal()">+ Novo anúncio</button>
       </div>
       <div id="listaAnuncios"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
     </div>
@@ -314,7 +314,7 @@ select.inp option{background:var(--bg2)}
     <div class="page" id="pg-projetos">
       <div class="section-head">
         <h3>🚀 Projetos</h3>
-        <button class="btn btn-primary btn-sm" onclick="openModal('projeto')">+ Novo projeto</button>
+        <button class="btn btn-primary btn-sm" onclick="openProjetoModal()">+ Novo projeto</button>
       </div>
       <div id="listaProjetos"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
     </div>
@@ -323,7 +323,7 @@ select.inp option{background:var(--bg2)}
     <div class="page" id="pg-enquetes">
       <div class="section-head">
         <h3>🗳️ Enquetes</h3>
-        <button class="btn btn-primary btn-sm" onclick="openModal('enquete')">+ Nova enquete</button>
+        <button class="btn btn-primary btn-sm" onclick="openEnqueteModal()">+ Nova enquete</button>
       </div>
       <div id="listaEnquetes"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
     </div>
@@ -332,7 +332,7 @@ select.inp option{background:var(--bg2)}
     <div class="page" id="pg-eventos">
       <div class="section-head">
         <h3>📅 Eventos do Calendário</h3>
-        <button class="btn btn-primary btn-sm" onclick="openModal('evento')">+ Novo evento</button>
+        <button class="btn btn-primary btn-sm" onclick="openEventoModal()">+ Novo evento</button>
       </div>
       <div id="listaEventos"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
     </div>
@@ -553,7 +553,7 @@ async function openIdeiaModal(id, currentStatus){
     <button class="btn btn-danger btn-sm" onclick="deleteItem('ideias','${id}',loadIdeias)">🗑 Excluir</button>
     <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
     <button class="btn btn-primary btn-sm" onclick="saveIdeia('${id}')">Salvar →</button>`;
-  openModal();
+  showModal();
 }
 
 async function saveIdeia(id){
@@ -625,7 +625,7 @@ async function openDenModal(id){
     <button class="btn btn-danger btn-sm" onclick="deleteItem('denuncias','${id}',loadDenuncias)">🗑 Excluir</button>
     <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
     <button class="btn btn-primary btn-sm" onclick="saveDen('${id}')">Salvar →</button>`;
-  openModal();
+  showModal();
 }
 
 async function saveDen(id){
@@ -718,10 +718,11 @@ async function openAnuncioModal(id=null){
   document.getElementById('modalFoot').innerHTML = `
     <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
     <button class="btn btn-primary btn-sm" onclick="saveAnuncio('${id||''}')">Salvar →</button>`;
-  openModal();
+  showModal();
 }
 
 async function saveAnuncio(id){
+  const realId = id && id !== 'null' && id !== '' ? id : null;
   const payload = {
     titulo: document.getElementById('aTit').value.trim(),
     descricao: document.getElementById('aDesc').value.trim(),
@@ -730,11 +731,11 @@ async function saveAnuncio(id){
     publicado: document.getElementById('aPub').checked,
   };
   if(!payload.titulo||!payload.descricao){ toast('⚠️','Preencha título e descrição.'); return; }
-  const {error} = id
-    ? await db.from('anuncios').update(payload).eq('id',id)
+  const {error} = realId
+    ? await db.from('anuncios').update(payload).eq('id',realId)
     : await db.from('anuncios').insert(payload);
   if(error){ toast('❌','Erro ao salvar.'); return; }
-  toast('✅', id?'Anúncio atualizado!':'Anúncio criado!');
+  toast('✅', realId?'Anúncio atualizado!':'Anúncio criado!');
   closeModal(); loadAnuncios();
 }
 
@@ -786,10 +787,11 @@ async function openProjetoModal(id=null){
   document.getElementById('modalFoot').innerHTML = `
     <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
     <button class="btn btn-primary btn-sm" onclick="saveProjeto('${id||''}')">Salvar →</button>`;
-  openModal();
+  showModal();
 }
 
 async function saveProjeto(id){
+  const realId = id && id !== 'null' && id !== '' ? id : null;
   const payload = {
     nome: document.getElementById('pNome').value.trim(),
     descricao: document.getElementById('pDesc').value.trim(),
@@ -798,11 +800,11 @@ async function saveProjeto(id){
     voluntarios: parseInt(document.getElementById('pVol').value)||0,
   };
   if(!payload.nome){ toast('⚠️','Informe o nome do projeto.'); return; }
-  const {error} = id
-    ? await db.from('projetos').update(payload).eq('id',id)
+  const {error} = realId
+    ? await db.from('projetos').update(payload).eq('id',realId)
     : await db.from('projetos').insert(payload);
   if(error){ toast('❌','Erro ao salvar.'); return; }
-  toast('✅', id?'Projeto atualizado!':'Projeto criado!');
+  toast('✅', realId?'Projeto atualizado!':'Projeto criado!');
   closeModal(); loadProjetos();
 }
 
@@ -843,7 +845,7 @@ function openEnqueteModal(){
   document.getElementById('modalFoot').innerHTML = `
     <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
     <button class="btn btn-primary btn-sm" onclick="saveEnquete()">Criar enquete →</button>`;
-  openModal();
+  showModal();
 }
 
 async function saveEnquete(){
@@ -914,10 +916,11 @@ async function openEventoModal(id=null){
   document.getElementById('modalFoot').innerHTML = `
     <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
     <button class="btn btn-primary btn-sm" onclick="saveEvento('${id||''}')">Salvar →</button>`;
-  openModal();
+  showModal();
 }
 
 async function saveEvento(id){
+  const realId = id && id !== 'null' && id !== '' ? id : null;
   const payload = {
     titulo: document.getElementById('evTit').value.trim(),
     descricao: document.getElementById('evDesc').value.trim(),
@@ -926,11 +929,11 @@ async function saveEvento(id){
     publicado: document.getElementById('evPub').checked,
   };
   if(!payload.titulo||!payload.data){ toast('⚠️','Preencha título e data.'); return; }
-  const {error} = id
-    ? await db.from('eventos').update(payload).eq('id',id)
+  const {error} = realId
+    ? await db.from('eventos').update(payload).eq('id',realId)
     : await db.from('eventos').insert(payload);
   if(error){ toast('❌','Erro ao salvar.'); return; }
-  toast('✅', id?'Evento atualizado!':'Evento criado!');
+  toast('✅', realId?'Evento atualizado!':'Evento criado!');
   closeModal(); loadEventos();
 }
 
@@ -944,14 +947,8 @@ async function deleteItem(table, id, reload){
   reload();
 }
 
-function openModal(type){
-  if(type === 'anuncio') return openAnuncioModal();
-  if(type === 'projeto') return openProjetoModal();
-  if(type === 'enquete') return openEnqueteModal();
-  if(type === 'evento')  return openEventoModal();
-  document.getElementById('modalOverlay').classList.add('open');
-}
-function openModal(){ document.getElementById('modalOverlay').classList.add('open'); }
+// Única declaração de openModal — sem duplicata
+function showModal(){ document.getElementById('modalOverlay').classList.add('open'); }
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
 
 // ── INIT ──
