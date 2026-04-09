@@ -181,6 +181,20 @@ select.inp option{background:var(--bg2)}
   .stats-row{grid-template-columns:1fr 1fr}
   .login-box{padding:32px 20px}
 }
+/* ── FINANCEIRO ADMIN ── */
+.adm-fin-totals{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:4px}
+.adm-fin-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+.adm-fin-lbl{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:8px}
+.adm-fin-val{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;line-height:1}
+.adm-fin-val.green{color:#22c55e}
+.adm-fin-val.red{color:var(--red)}
+.adm-fin-val.white{color:var(--text)}
+.adm-fin-val.gold{color:#f5a623}
+.fin-tipo-badge{display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:100px}
+.fin-tipo-entrada{background:rgba(34,197,94,.12);color:#22c55e}
+.fin-tipo-saida{background:rgba(232,25,44,.12);color:var(--red-light)}
+@media(max-width:768px){.adm-fin-totals{grid-template-columns:repeat(2,1fr)}}
+
 </style>
 </head>
 <body>
@@ -216,6 +230,7 @@ select.inp option{background:var(--bg2)}
       <button class="nav-item" onclick="showPage('contatos',this)"><span class="ni-icon">📩</span>Contatos<span class="ni-badge" id="bdg-contatos">0</span></button>
       <button class="nav-item" onclick="showPage('anuncios',this)"><span class="ni-icon">📢</span>Anúncios</button>
       <button class="nav-item" onclick="showPage('projetos',this)"><span class="ni-icon">🚀</span>Projetos</button>
+      <button class="nav-item" onclick="showPage('financeiro',this)"><span class="ni-icon">💰</span>Financeiro</button>
       <button class="nav-item" onclick="showPage('enquetes',this)"><span class="ni-icon">🗳️</span>Enquetes</button>
       <button class="nav-item" onclick="showPage('eventos',this)"><span class="ni-icon">📅</span>Eventos</button>
     </nav>
@@ -317,6 +332,32 @@ select.inp option{background:var(--bg2)}
         <button class="btn btn-primary btn-sm" onclick="openProjetoModal()">+ Novo projeto</button>
       </div>
       <div id="listaProjetos"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
+    </div>
+
+    <!-- FINANCEIRO -->
+    <div class="page" id="pg-financeiro">
+      <!-- Totais -->
+      <div class="adm-fin-totals" id="admFinTotals">
+        <div class="adm-fin-card"><div class="adm-fin-lbl">TOTAL ARRECADADO</div><div class="adm-fin-val green" id="admFinEnt">—</div></div>
+        <div class="adm-fin-card"><div class="adm-fin-lbl">TOTAL GASTO</div><div class="adm-fin-val red" id="admFinSai">—</div></div>
+        <div class="adm-fin-card"><div class="adm-fin-lbl">SALDO DISPONÍVEL</div><div class="adm-fin-val white" id="admFinSaldo">—</div></div>
+        <div class="adm-fin-card"><div class="adm-fin-lbl">META TOTAL</div><div class="adm-fin-val gold" id="admFinMeta">—</div></div>
+      </div>
+      <!-- Movimentações -->
+      <div class="section-head" style="margin-top:24px">
+        <h3>💸 Movimentações</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-success btn-sm" onclick="openMovModal('entrada')">+ Entrada</button>
+          <button class="btn btn-danger btn-sm" onclick="openMovModal('saida')">- Saída</button>
+        </div>
+      </div>
+      <div id="admFinLista"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
+      <!-- Metas -->
+      <div class="section-head" style="margin-top:28px">
+        <h3>🎯 Metas financeiras</h3>
+        <button class="btn btn-primary btn-sm" onclick="openMetaModal()">+ Nova meta</button>
+      </div>
+      <div id="admFinMetas"><div class="loading"><div class="spin"></div><br>Carregando...</div></div>
     </div>
 
     <!-- ENQUETES -->
@@ -430,11 +471,11 @@ function showPage(page, btn){
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById('pg-'+page).classList.add('active');
   btn.classList.add('active');
-  const titles = {dashboard:'Dashboard',ideias:'Ideias',denuncias:'Ouvidoria',contatos:'Contatos',anuncios:'Anúncios',projetos:'Projetos',enquetes:'Enquetes',eventos:'Eventos'};
+  const titles = {dashboard:'Dashboard',ideias:'Ideias',denuncias:'Ouvidoria',contatos:'Contatos',anuncios:'Anúncios',projetos:'Projetos',financeiro:'Financeiro',enquetes:'Enquetes',eventos:'Eventos'};
   document.getElementById('pageTitle').textContent = titles[page] || page;
   document.getElementById('sidebar').classList.remove('open');
   // lazy load
-  const loaders = {ideias:loadIdeias,denuncias:loadDenuncias,contatos:loadContatos,anuncios:loadAnuncios,projetos:loadProjetos,enquetes:loadEnquetes,eventos:loadEventos};
+  const loaders = {ideias:loadIdeias,denuncias:loadDenuncias,contatos:loadContatos,anuncios:loadAnuncios,projetos:loadProjetos,financeiro:loadAdmFinanceiro,enquetes:loadEnquetes,eventos:loadEventos};
   if(loaders[page]) loaders[page]();
 }
 
@@ -988,6 +1029,181 @@ async function deleteItem(table, id, reload){
 // Única declaração de openModal — sem duplicata
 function showModal(){ document.getElementById('modalOverlay').classList.add('open'); }
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+
+// ── FINANCEIRO ──
+function fmtBRL(v){ return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function fmtBRLFull(v){ return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtDateBR(d){ return d ? new Date(d+'T12:00:00').toLocaleDateString('pt-BR') : '—'; }
+
+async function loadAdmFinanceiro(){
+  const [{data:movs},{data:metas}] = await Promise.all([
+    db.from('financeiro').select('*').order('data',{ascending:false}),
+    db.from('metas_financeiras').select('*').order('created_at',{ascending:false})
+  ]);
+
+  // Totais
+  const all = movs||[];
+  const ent = all.filter(m=>m.tipo==='entrada').reduce((a,m)=>a+Number(m.valor),0);
+  const sai = all.filter(m=>m.tipo==='saida').reduce((a,m)=>a+Number(m.valor),0);
+  const meta = (metas||[]).reduce((a,m)=>a+Number(m.meta),0);
+  document.getElementById('admFinEnt').textContent   = fmtBRL(ent);
+  document.getElementById('admFinSai').textContent   = fmtBRL(sai);
+  document.getElementById('admFinSaldo').textContent = fmtBRL(ent-sai);
+  document.getElementById('admFinMeta').textContent  = fmtBRL(meta);
+
+  // Lista movimentações
+  const catIcon = {arrecadacao:'🎪',doacao:'🤝',evento:'🎉',projeto:'🚀',material:'📦',servico:'🔧',outros:'📌'};
+  document.getElementById('admFinLista').innerHTML = all.length
+    ? '<div class="card">'+all.map(m=>`
+        <div class="card-item">
+          <div class="item-top">
+            <div style="flex:1">
+              <div class="item-meta" style="margin-bottom:5px">
+                <span class="fin-tipo-badge fin-tipo-${m.tipo}">${m.tipo==='entrada'?'↑ Entrada':'↓ Saída'}</span>
+                <span class="item-tag" style="background:var(--surface2);color:var(--text2)">${catIcon[m.categoria]||'📌'} ${m.categoria}</span>
+                <span class="item-time">${fmtDateBR(m.data)}</span>
+                ${!m.publicado?`<span class="item-tag tag-arquivada">🚫 Oculto</span>`:''}
+              </div>
+              <div style="font-weight:600;font-size:.9rem">${m.descricao}</div>
+              ${m.projeto_ref?`<div style="font-size:.75rem;color:var(--text3);margin-top:2px">📎 ${m.projeto_ref}</div>`:''}
+            </div>
+            <div style="text-align:right;flex-shrink:0;margin-left:12px">
+              <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;color:${m.tipo==='entrada'?'#22c55e':'var(--red-light)'}">
+                ${m.tipo==='saida'?'-':'+'}${fmtBRLFull(m.valor)}
+              </div>
+              <div class="item-actions" style="margin-top:6px">
+                <button class="btn btn-secondary btn-sm" onclick="openMovModal('${m.tipo}','${m.id}')">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteItem('financeiro','${m.id}',loadAdmFinanceiro)">🗑</button>
+              </div>
+            </div>
+          </div>
+        </div>`).join('')+'</div>'
+    : '<div class="empty-state"><div class="es-icon">💸</div><p>Nenhuma movimentação ainda.</p></div>';
+
+  // Metas
+  document.getElementById('admFinMetas').innerHTML = metas?.length
+    ? '<div class="card">'+metas.map(m=>`
+        <div class="card-item">
+          <div class="item-top">
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:.9rem;margin-bottom:3px">${m.nome}</div>
+              ${m.descricao?`<div style="font-size:.78rem;color:var(--text2);margin-bottom:4px">${m.descricao}</div>`:''}
+              <div style="font-size:.78rem;color:var(--text3)">Meta: <strong style="color:var(--gold)">${fmtBRLFull(m.meta)}</strong></div>
+            </div>
+            <div class="item-actions">
+              <button class="btn btn-secondary btn-sm" onclick="openMetaModal('${m.id}')">✏️</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteItem('metas_financeiras','${m.id}',loadAdmFinanceiro)">🗑</button>
+            </div>
+          </div>
+        </div>`).join('')+'</div>'
+    : '<div class="empty-state"><div class="es-icon">🎯</div><p>Nenhuma meta ainda.</p></div>';
+}
+
+async function openMovModal(tipo, id=null){
+  let m = {};
+  if(id && id!=='entrada' && id!=='saida'){
+    const {data} = await db.from('financeiro').select('*').eq('id',id).single();
+    m = data||{};
+    tipo = m.tipo || tipo;
+  }
+  const isEnt = tipo==='entrada';
+  document.getElementById('modalTitle').textContent = id ? `✏️ Editar ${isEnt?'Entrada':'Saída'}` : `${isEnt?'+ Nova Entrada':'- Nova Saída'}`;
+  document.getElementById('modalBody').innerHTML = `
+    <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:100px;margin-bottom:18px;font-size:.82rem;font-weight:700;${isEnt?'background:rgba(34,197,94,.12);color:#22c55e':'background:rgba(232,25,44,.12);color:var(--red-light)'}">
+      ${isEnt?'↑ ENTRADA':'↓ SAÍDA'}
+    </div>
+    <div class="form-group"><label>Descrição</label><input class="inp" id="mDesc" value="${m.descricao||''}" placeholder="Ex: Arrecadação rifas, Compra de material..."></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>Valor (R$)</label><input class="inp" type="number" id="mValor" min="0.01" step="0.01" value="${m.valor||''}" placeholder="0,00"></div>
+      <div class="form-group"><label>Data</label><input class="inp" type="date" id="mData" value="${m.data||new Date().toISOString().split('T')[0]}"></div>
+    </div>
+    <div class="form-group"><label>Categoria</label>
+      <select class="inp" id="mCat">
+        ${isEnt
+          ? `<option value="arrecadacao" ${m.categoria==='arrecadacao'?'selected':''}>🎪 Arrecadação</option>
+             <option value="doacao" ${m.categoria==='doacao'?'selected':''}>🤝 Doação</option>
+             <option value="evento" ${m.categoria==='evento'?'selected':''}>🎉 Evento</option>
+             <option value="outros" ${m.categoria==='outros'?'selected':''}>📌 Outros</option>`
+          : `<option value="material" ${m.categoria==='material'?'selected':''}>📦 Material</option>
+             <option value="servico" ${m.categoria==='servico'?'selected':''}>🔧 Serviço</option>
+             <option value="projeto" ${m.categoria==='projeto'?'selected':''}>🚀 Projeto</option>
+             <option value="outros" ${m.categoria==='outros'?'selected':''}>📌 Outros</option>`}
+      </select>
+    </div>
+    <div class="form-group"><label>Projeto relacionado <span style="font-size:.68rem;color:var(--text3);margin-left:4px">opcional</span></label>
+      <input class="inp" id="mProjRef" value="${m.projeto_ref||''}" placeholder="Ex: Escola Mais Verde, Semana Cultural..."></div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:.855rem;cursor:pointer;margin-top:4px">
+      <input type="checkbox" id="mPub" ${m.publicado!==false?'checked':''} style="width:16px;height:16px;accent-color:var(--red);cursor:pointer">
+      Visível no site público
+    </label>`;
+  const realId = id && id!=='entrada' && id!=='saida' ? id : null;
+  document.getElementById('modalFoot').innerHTML = `
+    <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-primary btn-sm" onclick="saveMov('${tipo}','${realId||''}')">Salvar →</button>`;
+  showModal();
+}
+
+async function saveMov(tipo, id){
+  const realId = id && id!=='' && id!=='null' ? id : null;
+  const valor = parseFloat(document.getElementById('mValor').value);
+  if(!document.getElementById('mDesc').value.trim()){ toast('⚠️','Informe a descrição.'); return; }
+  if(!valor || valor<=0){ toast('⚠️','Informe um valor válido.'); return; }
+  if(!document.getElementById('mData').value){ toast('⚠️','Informe a data.'); return; }
+  const payload = {
+    tipo,
+    descricao:   document.getElementById('mDesc').value.trim(),
+    valor,
+    data:        document.getElementById('mData').value,
+    categoria:   document.getElementById('mCat').value,
+    projeto_ref: document.getElementById('mProjRef').value.trim()||null,
+    publicado:   document.getElementById('mPub').checked,
+  };
+  const {error} = realId
+    ? await db.from('financeiro').update(payload).eq('id',realId)
+    : await db.from('financeiro').insert(payload);
+  if(error){ toast('❌','Erro ao salvar: '+error.message); return; }
+  toast('✅', realId?'Movimentação atualizada!':'Movimentação registrada!');
+  closeModal(); loadAdmFinanceiro();
+}
+
+async function openMetaModal(id=null){
+  let m = {};
+  if(id){ const {data} = await db.from('metas_financeiras').select('*').eq('id',id).single(); m=data||{}; }
+  document.getElementById('modalTitle').textContent = id ? '✏️ Editar Meta' : '🎯 Nova Meta';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label>Nome do projeto</label><input class="inp" id="mtNome" value="${m.nome||''}" placeholder="Ex: Escola Mais Verde"></div>
+    <div class="form-group"><label>Valor da meta (R$)</label><input class="inp" type="number" id="mtValor" min="1" step="0.01" value="${m.meta||''}" placeholder="0,00"></div>
+    <div class="form-group"><label>Descrição <span style="font-size:.68rem;color:var(--text3);margin-left:4px">opcional</span></label>
+      <input class="inp" id="mtDesc" value="${m.descricao||''}" placeholder="Breve descrição da meta"></div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:.855rem;cursor:pointer;margin-top:4px">
+      <input type="checkbox" id="mtAtiva" ${m.ativa!==false?'checked':''} style="width:16px;height:16px;accent-color:var(--red);cursor:pointer">
+      Exibir no site
+    </label>`;
+  document.getElementById('modalFoot').innerHTML = `
+    <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-primary btn-sm" onclick="saveMeta('${id||''}')">Salvar →</button>`;
+  showModal();
+}
+
+async function saveMeta(id){
+  const realId = id && id!=='' && id!=='null' ? id : null;
+  const nome  = document.getElementById('mtNome').value.trim();
+  const valor = parseFloat(document.getElementById('mtValor').value);
+  if(!nome){ toast('⚠️','Informe o nome do projeto.'); return; }
+  if(!valor||valor<=0){ toast('⚠️','Informe um valor válido.'); return; }
+  const payload = {
+    nome,
+    meta:      valor,
+    descricao: document.getElementById('mtDesc').value.trim()||null,
+    ativa:     document.getElementById('mtAtiva').checked,
+  };
+  const {error} = realId
+    ? await db.from('metas_financeiras').update(payload).eq('id',realId)
+    : await db.from('metas_financeiras').insert(payload);
+  if(error){ toast('❌','Erro ao salvar: '+error.message); return; }
+  toast('✅', realId?'Meta atualizada!':'Meta criada!');
+  closeModal(); loadAdmFinanceiro();
+}
 
 // ── INIT ──
 checkSession();
