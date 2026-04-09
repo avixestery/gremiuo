@@ -575,7 +575,7 @@ footer::before{content:'';display:block;width:50px;height:3px;background:var(--r
         <div class="social-links">
           <a href="https://instagram.com/representamais.ideal" target="_blank" class="social-link"><span class="soc-icon">📸</span><span>Instagram</span><span class="soc-handle">@representamais.ideal</span></a>
           <a href="#" class="social-link"><span class="soc-icon">💬</span><span>WhatsApp</span><span class="soc-handle">Grupo do grêmio</span></a>
-          <a href="mailto:gremio@ibc.edu.br" class="social-link"><span class="soc-icon">📧</span><span>E-mail</span><span class="soc-handle">gremio@ibc.edu.br</span></a>
+          <a href="/cdn-cgi/l/email-protection#9bfce9fef6f2f4dbf2f9f8b5feffeeb5f9e9" class="social-link"><span class="soc-icon">📧</span><span>E-mail</span><span class="soc-handle"><span class="__cf_email__" data-cfemail="8cebfee9e1e5e3cce5eeefa2e9e8f9a2eefe">[email&#160;protected]</span></span></a>
           <a href="#" class="social-link"><span class="soc-icon">📍</span><span>Presencial</span><span class="soc-handle">Sala do grêmio — bloco B</span></a>
         </div>
       </div>
@@ -605,7 +605,7 @@ footer::before{content:'';display:block;width:50px;height:3px;background:var(--r
 <!-- TOAST -->
 <div class="toast" id="toast"><span id="tIcon">✅</span><span id="tText" style="font-size:.84rem;font-weight:500;margin-left:6px">OK</span></div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ══════════════════════════════════════════
 //  SUPABASE
 // ══════════════════════════════════════════
@@ -798,6 +798,19 @@ async function loadProjetos(){
   const stMap = { planejamento:['st-plan','Em planejamento'], andamento:['st-run','Em andamento'], concluido:['st-done','Concluído'] };
   document.getElementById('projGrid').innerHTML = data.map(p => {
     const [cls, lbl] = stMap[p.status] || ['st-plan','—'];
+
+    // Linha de participantes — só aparece se sem_participantes for false/null
+    let participLine = '';
+    if(!p.sem_participantes){
+      const partes = [];
+      if(p.voluntarios > 0)
+        partes.push(`${p.voluntarios} voluntário${p.voluntarios!==1?'s':''}`);
+      if(p.max_participantes > 0)
+        partes.push(`máx. ${p.max_participantes} participantes`);
+      if(partes.length)
+        participLine = `<span style="font-size:.72rem;color:var(--text3)">${partes.join(' · ')}</span>`;
+    }
+
     return `<div class="proj-card">
       <div class="proj-status ${cls}"><span class="st-dot"></span>${lbl}</div>
       <h3>${p.nome}</h3>
@@ -805,7 +818,7 @@ async function loadProjetos(){
       <div class="prog-label"><span>Progresso</span><span>${p.progresso}%</span></div>
       <div class="prog-bar"><div class="prog-fill" style="width:${p.progresso}%"></div></div>
       <div class="proj-foot">
-        <span style="font-size:.72rem;color:var(--text3)">${p.voluntarios} voluntário${p.voluntarios!==1?'s':''}</span>
+        ${participLine}
         <a href="#" class="btn btn-secondary btn-sm">Acompanhar</a>
       </div>
     </div>`;
@@ -954,16 +967,4 @@ async function confirmVote(){
 
 // ══════════════════════════════════════════
 //  INIT — load everything
-// ══════════════════════════════════════════
-(async function init(){
-  await Promise.all([
-    loadStats(),
-    loadAnuncios(),
-    loadProjetos(),
-    loadEventos(),
-    loadPoll()
-  ]);
-})();
-</script>
-</body>
-</html>
+// ═════════════════════
