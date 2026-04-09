@@ -575,7 +575,7 @@ footer::before{content:'';display:block;width:50px;height:3px;background:var(--r
         <div class="social-links">
           <a href="https://instagram.com/representamais.ideal" target="_blank" class="social-link"><span class="soc-icon">📸</span><span>Instagram</span><span class="soc-handle">@representamais.ideal</span></a>
           <a href="#" class="social-link"><span class="soc-icon">💬</span><span>WhatsApp</span><span class="soc-handle">Grupo do grêmio</span></a>
-          <a href="/cdn-cgi/l/email-protection#9bfce9fef6f2f4dbf2f9f8b5feffeeb5f9e9" class="social-link"><span class="soc-icon">📧</span><span>E-mail</span><span class="soc-handle"><span class="__cf_email__" data-cfemail="8cebfee9e1e5e3cce5eeefa2e9e8f9a2eefe">[email&#160;protected]</span></span></a>
+          <a href="mailto:gremio@ibc.edu.br" class="social-link"><span class="soc-icon">📧</span><span>E-mail</span><span class="soc-handle">gremio@ibc.edu.br</span></a>
           <a href="#" class="social-link"><span class="soc-icon">📍</span><span>Presencial</span><span class="soc-handle">Sala do grêmio — bloco B</span></a>
         </div>
       </div>
@@ -605,7 +605,7 @@ footer::before{content:'';display:block;width:50px;height:3px;background:var(--r
 <!-- TOAST -->
 <div class="toast" id="toast"><span id="tIcon">✅</span><span id="tText" style="font-size:.84rem;font-weight:500;margin-left:6px">OK</span></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // ══════════════════════════════════════════
 //  SUPABASE
 // ══════════════════════════════════════════
@@ -967,4 +967,16 @@ async function confirmVote(){
 
 // ══════════════════════════════════════════
 //  INIT — load everything
-// ═════════════════════
+// ═══════════════════════════════════════════════════════════════
+(async function init(){
+  await Promise.all([
+    loadStats(),
+    loadAnuncios(),
+    loadProjetos(),
+    loadEventos(),
+    loadPoll()
+  ]);
+})();
+</script>
+</body>
+</html>
